@@ -156,7 +156,7 @@ const HomePage = () => {
             <main className="home-content">
                 <header className="home-header">
                     <div className="welcome-section">
-                        <h1>Welcome to the Heritage, Visitor</h1>
+                        <h1>Hello to the Heritage, Visitor</h1>
                         <p>Explore the timeless corridors of history and art.</p>
                         
                         <button
