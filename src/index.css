@@ -1,0 +1,136 @@
+@import url('https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;600;700&display=swap');
+
+:root {
+  --primary: #C5A059;
+  /* Museum Gold */
+  --primary-hover: #D4AF37;
+  --secondary: #4A0E0E;
+  /* Deep Mahogany */
+  --accent: #9A7B4F;
+  /* Bronze/Brass */
+  --bg-dark: #0A0A0B;
+  /* Deep Ink */
+  --bg-darker: #050506;
+  --text-main: #F5E6CA;
+  /* Rich Parchment */
+  --text-muted: #A69076;
+  /* Muted Gold/Tan */
+  --glass-bg: rgba(20, 20, 20, 0.4);
+  --glass-border: rgba(197, 160, 89, 0.2);
+  /* Gold-tinted border */
+  --glass-glow: rgba(197, 160, 89, 0.1);
+
+  font-family: 'Outfit', system-ui, -apple-system, sans-serif;
+  line-height: 1.5;
+  font-weight: 400;
+
+  color-scheme: dark;
+  color: var(--text-main);
+  background-color: var(--bg-darker);
+
+  font-synthesis: none;
+  text-rendering: optimizeLegibility;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+* {
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+}
+
+/* ensure html, body and root all take full height and only one scrollbar is used */
+html {
+  height: 100%;
+  overflow-y: scroll;    /* always show vertical bar on html only */
+  overflow-x: hidden; /* prevent horizontal scroll on the root element */
+}
+
+body {
+  min-height: 100vh;
+  height: auto;
+  background: radial-gradient(circle at top left, #1a1510, #050506),
+    radial-gradient(circle at bottom right, #2d1b10, #050506);
+  background-attachment: fixed;
+  overflow-x: hidden; /* prevent any horizontal scrolling */
+  overflow-y: hidden; /* body never scrolls */
+}
+
+#root {
+  height: 100%;
+  overflow: hidden;      /* prevent root from introducing its own scrollbar */
+}
+
+/* disable overflow on common full‑screen containers so only html scrolls */
+.home-container,
+.explore-container,
+.admin-container,
+.auth-layout,
+.main-container,
+#root > * {
+  overflow-y: hidden !important;
+}
+
+a {
+  text-decoration: none;
+  color: inherit;
+  transition: all 0.3s ease;
+}
+
+button {
+  cursor: pointer;
+  border: none;
+  outline: none;
+  font-family: inherit;
+}
+
+input {
+  outline: none;
+  font-family: inherit;
+}
+
+/* Glassmorphism Utility */
+.glass {
+  background: var(--glass-bg);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  border: 1px solid var(--glass-border);
+  box-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.37);
+}
+
+.glass-hover:hover {
+  background: rgba(255, 255, 255, 0.05);
+  border-color: rgba(255, 255, 255, 0.2);
+}
+
+/* Scrollbar */
+/* always show a vertical scrollbar (html overflow-y: scroll above) and style it */
+::-webkit-scrollbar {
+  width: 8px;
+}
+
+::-webkit-scrollbar-track {
+  background: var(--bg-darker);
+}
+
+::-webkit-scrollbar-thumb {
+  background: var(--glass-border);
+  border-radius: 4px;
+  transition: background 0.2s;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  /* highlight on hover */
+  background: var(--primary);
+}
+
+/* Firefox scrollbar support */
+html {
+  scrollbar-width: thin;
+  scrollbar-color: var(--glass-border) var(--bg-darker);
+}
+html:hover {
+  /* on hover, thumb will be tinted by the user agent, but we keep the colors consistent */
+  scrollbar-color: var(--primary) var(--bg-darker);
+}

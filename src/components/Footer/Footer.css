@@ -1,0 +1,32 @@
+.app-footer {
+    width: 100%;
+    background: var(--glass-bg);
+    border-top: 1px solid var(--glass-border);
+    padding: 1.2rem 0;
+    text-align: center;
+    position: relative;
+    z-index: 10;
+    font-size: 1rem;
+    color: var(--text-muted);
+    box-shadow: 0 -2px 16px rgba(0,0,0,0.04);
+}
+
+.footer-content {
+    display: flex;
+    flex-direction: column;
+    gap: 0.5rem;
+    align-items: center;
+    justify-content: center;
+}
+
+.footer-links a {
+    color: var(--primary);
+    text-decoration: none;
+    margin: 0 0.5rem;
+    font-weight: 500;
+    transition: color 0.2s;
+}
+
+.footer-links a:hover {
+    color: var(--accent);
+}

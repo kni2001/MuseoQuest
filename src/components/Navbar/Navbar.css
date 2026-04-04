@@ -1,0 +1,268 @@
+/* share navbar styles by pulling in home page stylesheet */
+@import "../../pages/Home/HomePage.css";
+
+/* --- Modern Glassmorphic Dropdown --- */
+.profile-dropdown-card {
+    position: absolute;
+    top: calc(100% + 10px);
+    right: 0;
+    min-width: 240px;
+    background: rgba(15, 12, 10, 0.85);
+    backdrop-filter: blur(24px);
+    -webkit-backdrop-filter: blur(24px);
+    border: 1px solid rgba(197, 160, 89, 0.2);
+    border-radius: 16px;
+    box-shadow: 0 20px 40px rgba(0, 0, 0, 0.4), 0 0 0 1px rgba(197, 160, 89, 0.1) inset;
+    overflow: hidden;
+    z-index: 200;
+}
+
+/* Make it adapt to light mode */
+.light-theme .profile-dropdown-card {
+    background: rgba(255, 255, 255, 0.9);
+    border: 1px solid rgba(45, 27, 16, 0.15);
+    box-shadow: 0 20px 40px rgba(45, 27, 16, 0.1), 0 0 0 1px rgba(255, 255, 255, 0.5) inset;
+}
+
+.dropdown-greeting {
+    padding: 1rem;
+    background: linear-gradient(135deg, rgba(197, 160, 89, 0.15), rgba(197, 160, 89, 0.05));
+    border-bottom: 1px solid rgba(197, 160, 89, 0.1);
+}
+
+.greeting-text {
+    font-weight: 700;
+    font-size: 0.95rem;
+    color: var(--primary);
+    text-align: center;
+    letter-spacing: 0.5px;
+}
+
+.dropdown-profile-section {
+    display: flex;
+    justify-content: center;
+    padding: 1.5rem 1rem 0.5rem;
+}
+
+/* Avatar Circle */
+.dropdown-profile-picture {
+    position: relative;
+    width: 72px;
+    height: 72px;
+    border-radius: 50%;
+    overflow: hidden;
+    border: 3px solid var(--primary);
+    box-shadow: 0 0 15px rgba(197, 160, 89, 0.2);
+    cursor: pointer;
+    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.dropdown-profile-picture img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+}
+
+.dropdown-profile-picture:hover {
+    transform: scale(1.05);
+    box-shadow: 0 0 20px rgba(197, 160, 89, 0.4);
+}
+
+.profile-picture-overlay {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background: rgba(15, 12, 10, 0.7);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: white;
+    font-size: 0.75rem;
+    font-weight: 600;
+    opacity: 0;
+    backdrop-filter: blur(2px);
+    transition: opacity 0.3s ease;
+}
+
+.dropdown-profile-picture:hover .profile-picture-overlay {
+    opacity: 1;
+}
+
+/* Name Section */
+.profile-name-section {
+    padding: 0 1rem 1.25rem;
+    text-align: center;
+}
+
+.name-display {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.5rem;
+}
+
+.display-name {
+    font-weight: 600;
+    font-size: 1.1rem;
+    color: var(--text-main);
+    max-width: 160px;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.name-edit-btn {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 24px;
+    height: 24px;
+    border: none;
+    background: rgba(197, 160, 89, 0.1);
+    color: var(--primary);
+    border-radius: 50%;
+    cursor: pointer;
+    transition: all 0.2s ease;
+}
+
+.name-edit-btn:hover {
+    background: var(--primary);
+    color: #fff;
+    transform: scale(1.1);
+}
+
+.name-edit-group {
+    display: flex;
+    gap: 0.5rem;
+    justify-content: center;
+    align-items: center;
+}
+
+.name-input {
+    width: 120px;
+    padding: 0.4rem 0.75rem;
+    border: 1px solid var(--primary);
+    background: rgba(15, 12, 10, 0.5);
+    color: var(--text-main);
+    border-radius: 8px;
+    font-size: 0.9rem;
+    font-family: inherit;
+    font-weight: 500;
+    outline: none;
+    transition: all 0.3s ease;
+}
+
+.light-theme .name-input {
+    background: rgba(255, 255, 255, 0.5);
+}
+
+.name-input:focus {
+    box-shadow: 0 0 0 2px rgba(197, 160, 89, 0.2);
+}
+
+.name-save-btn {
+    padding: 0.4rem 0.75rem;
+    border: none;
+    background: var(--primary);
+    color: #fff;
+    border-radius: 8px;
+    font-size: 0.85rem;
+    font-family: inherit;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.2s ease;
+}
+
+.name-save-btn:hover {
+    background: var(--primary-hover);
+}
+
+/* Dividers */
+.dropdown-divider {
+    height: 1px;
+    background: linear-gradient(90deg, transparent, rgba(197, 160, 89, 0.2), transparent);
+    width: 100%;
+    margin: 0;
+}
+
+/* Theme Selector */
+.theme-selector-modern {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 0.75rem 1.25rem;
+}
+
+.theme-label {
+    font-size: 0.85rem;
+    color: var(--text-muted);
+    font-weight: 500;
+}
+
+.theme-options {
+    display: flex;
+    background: rgba(255, 255, 255, 0.05);
+    border-radius: 20px;
+    padding: 2px;
+    border: 1px solid rgba(255, 255, 255, 0.05);
+}
+
+.light-theme .theme-options {
+    background: rgba(0, 0, 0, 0.05);
+    border-color: rgba(0, 0, 0, 0.05);
+}
+
+.theme-icon-btn {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 32px;
+    height: 32px;
+    border: none;
+    background: transparent;
+    color: var(--text-muted);
+    border-radius: 18px;
+    cursor: pointer;
+    transition: all 0.3s ease;
+}
+
+.theme-icon-btn:hover {
+    color: var(--text-main);
+}
+
+.theme-icon-btn.active {
+    background: var(--primary);
+    color: #fff;
+    box-shadow: 0 2px 8px rgba(197, 160, 89, 0.3);
+}
+
+/* Action Items (Logout) */
+.dropdown-action-item {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+    padding: 1rem 1.25rem;
+    font-size: 0.9rem;
+    font-weight: 500;
+    color: var(--text-main);
+    cursor: pointer;
+    transition: all 0.2s ease;
+}
+
+.dropdown-action-item:hover {
+    background: rgba(255, 255, 255, 0.05);
+}
+
+.light-theme .dropdown-action-item:hover {
+    background: rgba(0, 0, 0, 0.03);
+}
+
+.dropdown-action-item.danger {
+    color: #ef4444;
+}
+
+.dropdown-action-item.danger:hover {
+    background: rgba(239, 68, 68, 0.08);
+}
