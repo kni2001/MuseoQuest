@@ -1,7 +1,7 @@
-import { BookOpen, LogOut, Mail, MessageSquare, Reply, User, Moon, Sun, Users, Trash2, CheckCircle2 } from 'lucide-react';
+import { BookOpen, LogOut, Mail, MessageSquare, Reply, User, Moon, Sun, Users, Trash2, CheckCircle2, Upload, Eye, Camera, X } from 'lucide-react';
 import React from 'react';
 import { useNavigate } from 'react-router-dom';
-import { motion } from 'framer-motion';
+import { motion, AnimatePresence } from 'framer-motion';
 import './AdminDashboard.css';
 import { auth, db, storage } from '../../lib/firebase';
 import { collection, query, orderBy, onSnapshot, doc, getDoc, deleteDoc, updateDoc, serverTimestamp } from 'firebase/firestore';
@@ -19,6 +19,10 @@ const AdminDashboard = () => {
     const [isProfileOpen, setIsProfileOpen] = React.useState(false);
     const profileRef = React.useRef(null);
     const fileInputRef = React.useRef(null);
+    const videoRef = React.useRef(null);
+    const canvasRef = React.useRef(null);
+    const [showCamera, setShowCamera] = React.useState(false);
+    const [showPhotoModal, setShowPhotoModal] = React.useState(false);
     const messagesSectionRef = React.useRef(null);
     const loggedInUsersSectionRef = React.useRef(null);
     const rewardsSectionRef = React.useRef(null);
@@ -202,6 +206,84 @@ const AdminDashboard = () => {
         }
     };
 
+    const handleCameraStart = () => {
+        setShowCamera(true);
+        setIsProfileOpen(false);
+        setTimeout(() => {
+            if (videoRef.current) {
+                navigator.mediaDevices
+                    .getUserMedia({ video: { facingMode: 'user' } })
+                    .then((stream) => {
+                        videoRef.current.srcObject = stream;
+                        videoRef.current.play();
+                    })
+                    .catch((error) => {
+                        console.error('Error accessing camera:', error);
+                        alert('Unable to access camera');
+                    });
+            }
+        }, 100);
+    };
+
+    const handleTakePhoto = async () => {
+        if (videoRef.current && canvasRef.current) {
+            const context = canvasRef.current.getContext('2d');
+            canvasRef.current.width = videoRef.current.videoWidth;
+            canvasRef.current.height = videoRef.current.videoHeight;
+            context.drawImage(videoRef.current, 0, 0);
+
+            const photoData = canvasRef.current.toDataURL('image/jpeg');
+
+            try {
+                const user = auth.currentUser;
+                if (!user) return;
+
+                // Convert base64 to blob
+                const response = await fetch(photoData);
+                const blob = await response.blob();
+
+                // Upload image to Firebase Storage
+                const storageRef = ref(storage, `admins/${user.uid}/profile-picture-camera`);
+                await uploadBytes(storageRef, blob);
+                const downloadURL = await getDownloadURL(storageRef);
+
+                // Save image URL to Firestore
+                const userDocRef = doc(db, 'users', user.uid);
+                await updateDoc(userDocRef, {
+                    profileImage: downloadURL
+                });
+
+                setAdminProfileImage(downloadURL);
+
+                // Stop camera stream
+                if (videoRef.current.srcObject) {
+                    videoRef.current.srcObject.getTracks().forEach((track) => {
+                        track.stop();
+                    });
+                }
+
+                setShowCamera(false);
+            } catch (error) {
+                console.error('Failed to upload camera photo:', error);
+                alert('Failed to upload photo. Please try again.');
+            }
+        }
+    };
+
+    const handleViewPhoto = () => {
+        setShowPhotoModal(true);
+        setIsProfileOpen(false);
+    };
+
+    const handleCameraCancel = () => {
+        if (videoRef.current && videoRef.current.srcObject) {
+            videoRef.current.srcObject.getTracks().forEach((track) => {
+                track.stop();
+            });
+        }
+        setShowCamera(false);
+    };
+
     // Animation Variants
     const containerVariants = {
         hidden: { opacity: 0 },
@@ -246,23 +328,16 @@ const AdminDashboard = () => {
                         <BookOpen size={18} /> View Site
                     </button>
                     <div className="admin-profile-icon-wrapper" ref={profileRef}>
-                        <div 
-                            className="admin-profile-icon" 
+                        <div
+                            className="admin-profile-icon"
                             title={adminName}
                             onClick={() => setIsProfileOpen(!isProfileOpen)}
                         >
-                            <div 
-                                className="header-avatar"
-                                style={{
-                                    backgroundImage: adminProfileImage 
-                                        ? `url('${adminProfileImage}')`
-                                        : `url('https://api.dicebear.com/7.x/${avatarGender}_avatar/svg?seed=${adminName}')`
-                                }}
-                            >
-                            </div>
+                            <span className="admin-name">{adminName}</span>
+                            <img src="/src/images/usericon.webp" alt="Admin Icon" className="admin-user-icon" />
                         </div>
                         {isProfileOpen && (
-                            <motion.div 
+                            <motion.div
                                 className="profile-dropdown-header"
                                 initial={{ opacity: 0, y: -10 }}
                                 animate={{ opacity: 1, y: 0 }}
@@ -273,25 +348,36 @@ const AdminDashboard = () => {
                                     <h4>Hi {adminName}</h4>
                                 </div>
                                 <div className="dropdown-profile-section">
-                                    <div 
-                                        className="dropdown-profile-picture"
-                                        style={{
-                                            backgroundImage: adminProfileImage 
-                                                ? `url('${adminProfileImage}')`
-                                                : `url('https://api.dicebear.com/7.x/${avatarGender}_avatar/svg?seed=${adminName}')`
-                                        }}
-                                        onClick={() => fileInputRef.current?.click()}
-                                        title="Click to upload profile picture"
-                                    >
-                                        <div className="profile-picture-overlay">Upload</div>
+                                    <div className="dropdown-profile-picture" onClick={() => setShowPhotoModal(true)}>
+                                        {adminProfileImage ? (
+                                            <img src={adminProfileImage} alt="Admin Profile" />
+                                        ) : (
+                                            <img src="/src/images/usericon.webp" alt="Default Admin Profile" className="default-profile-pic" />
+                                        )}
                                     </div>
-                                    <input
-                                        ref={fileInputRef}
-                                        type="file"
-                                        accept="image/*"
-                                        onChange={handleProfileImageUpload}
-                                        style={{ display: 'none' }}
-                                    />
+                                    <div className="profile-actions-menu">
+                                        <button
+                                            className="profile-action-btn"
+                                            onClick={() => fileInputRef.current?.click()}
+                                        >
+                                            <Upload size={16} />
+                                            <span>Add Photo</span>
+                                        </button>
+                                        <button
+                                            className="profile-action-btn"
+                                            onClick={handleCameraStart}
+                                        >
+                                            <Camera size={16} />
+                                            <span>Take Photo</span>
+                                        </button>
+                                        <button
+                                            className="profile-action-btn"
+                                            onClick={handleViewPhoto}
+                                        >
+                                            <Eye size={16} />
+                                            <span>View Photo</span>
+                                        </button>
+                                    </div>
                                 </div>
                                 <div className="dropdown-divider"></div>
                                 <div className="theme-selector">
@@ -615,6 +701,137 @@ const AdminDashboard = () => {
                     </div>
                 </motion.section>
             </main>
+
+            {/* Camera Modal */}
+            <AnimatePresence>
+                {showCamera && (
+                    <motion.div
+                        className="camera-modal-overlay"
+                        onClick={handleCameraCancel}
+                        initial={{ opacity: 0 }}
+                        animate={{ opacity: 1 }}
+                        exit={{ opacity: 0 }}
+                    >
+                        <motion.div
+                            className="camera-modal"
+                            onClick={(e) => e.stopPropagation()}
+                            initial={{ scale: 0.9, opacity: 0 }}
+                            animate={{ scale: 1, opacity: 1 }}
+                            exit={{ scale: 0.9, opacity: 0 }}
+                        >
+                            <div className="camera-header">
+                                <h3>Take a Photo</h3>
+                                <button
+                                    className="camera-close-btn"
+                                    onClick={handleCameraCancel}
+                                >
+                                    <X size={24} />
+                                </button>
+                            </div>
+                            <video
+                                ref={videoRef}
+                                className="camera-video"
+                                playsInline
+                            ></video>
+                            <canvas ref={canvasRef} style={{ display: 'none' }}></canvas>
+                            <div className="camera-actions">
+                                <button
+                                    className="camera-btn cancel-btn"
+                                    onClick={handleCameraCancel}
+                                >
+                                    Cancel
+                                </button>
+                                <button
+                                    className="camera-btn capture-btn"
+                                    onClick={handleTakePhoto}
+                                >
+                                    <Camera size={20} />
+                                    Capture
+                                </button>
+                            </div>
+                        </motion.div>
+                    </motion.div>
+                )}
+            </AnimatePresence>
+
+            {/* Photo View Modal */}
+            <AnimatePresence>
+                {showPhotoModal && (
+                    <motion.div
+                        className="photo-modal-overlay"
+                        onClick={() => setShowPhotoModal(false)}
+                        initial={{ opacity: 0 }}
+                        animate={{ opacity: 1 }}
+                        exit={{ opacity: 0 }}
+                    >
+                        <motion.div
+                            className="photo-modal"
+                            onClick={(e) => e.stopPropagation()}
+                            initial={{ scale: 0.9, opacity: 0 }}
+                            animate={{ scale: 1, opacity: 1 }}
+                            exit={{ scale: 0.9, opacity: 0 }}
+                        >
+                            <div className="photo-modal-header">
+                                <h3>Profile Photo</h3>
+                                <button
+                                    className="photo-modal-close-btn"
+                                    onClick={() => setShowPhotoModal(false)}
+                                >
+                                    <X size={24} />
+                                </button>
+                            </div>
+                            {adminProfileImage ? (
+                                <>
+                                    <img
+                                        src={adminProfileImage}
+                                        alt="Admin Profile"
+                                        className="photo-modal-image"
+                                    />
+                                    <div className="photo-modal-actions">
+                                        <button
+                                            className="photo-modal-btn remove-btn"
+                                            onClick={() => {
+                                                setAdminProfileImage(null);
+                                                // Remove from Firestore
+                                                const user = auth.currentUser;
+                                                if (user) {
+                                                    updateDoc(doc(db, 'users', user.uid), {
+                                                        profileImage: null
+                                                    });
+                                                }
+                                            }}
+                                        >
+                                            Remove Photo
+                                        </button>
+                                        <button
+                                            className="photo-modal-btn close-btn"
+                                            onClick={() => setShowPhotoModal(false)}
+                                        >
+                                            Close
+                                        </button>
+                                    </div>
+                                </>
+                            ) : (
+                                <div className="no-photo-message">
+                                    <User size={48} />
+                                    <p>No profile photo uploaded yet.</p>
+                                    <p>Click "Add Photo" or "Take Photo" to add one!</p>
+                                </div>
+                            )}
+                        </motion.div>
+                    </motion.div>
+                )}
+            </AnimatePresence>
+
+            <input
+                ref={fileInputRef}
+                type="file"
+                accept="image/*"
+                style={{ display: 'none' }}
+                onChange={handleProfileImageUpload}
+                onClick={(e) => { e.target.value = null; }}
+            />
+
             <Footer />
             {/* Background Effects */}
             <div className="bg-blob admin-blob-1"></div>

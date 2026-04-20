@@ -127,28 +127,44 @@
 .profile-container {
     display: flex;
     align-items: center;
-    gap: 1rem;
-    padding: 0.5rem 1rem;
-    background: rgba(255, 255, 255, 0.03);
-    border-radius: 100px;
+    gap: 0.75rem;
+    padding: 0.45rem 0.85rem;
+    background: rgba(255, 255, 255, 0.05);
+    border-radius: 999px;
     border: 1px solid var(--glass-border);
     cursor: pointer;
-    transition: all 0.3s ease;
+    transition: all 0.25s ease;
+    position: relative;
 }
 
 .profile-container:hover {
-    background: rgba(197, 160, 89, 0.05);
-    border-color: rgba(197, 160, 89, 0.3);
+    background: rgba(197, 160, 89, 0.08);
+    border-color: rgba(197, 160, 89, 0.35);
+    transform: translateY(-1px);
 }
 
 .profile-info {
     display: flex;
     flex-direction: column;
+    justify-content: center;
+    align-items: flex-start;
+    min-width: 0;
 }
 
 .profile-name {
     font-size: 0.95rem;
     font-weight: 700;
+    color: var(--text-main);
+    max-width: 130px;
+    overflow: hidden;
+    white-space: nowrap;
+    text-overflow: ellipsis;
+}
+
+.profile-rank {
+    display: flex;
+    align-items: center;
+    gap: 0.35rem;
 }
 
 .profile-avatar-circle {
@@ -189,7 +205,8 @@
 .profile-info {
     display: flex;
     flex-direction: column;
-    align-items: flex-end;
+    justify-content: center;
+    align-items: flex-start;
 }
 
 .profile-name {
@@ -201,7 +218,7 @@
 .profile-rank {
     display: flex;
     align-items: center;
-    gap: 0.5rem;
+    gap: 0.45rem;
 }
 
 .rank-level {
@@ -224,8 +241,8 @@
 }
 
 .profile-avatar-circle {
-    width: 36px;
-    height: 36px;
+    width: 40px;
+    height: 40px;
     border-radius: 50%;
     border: 2px solid var(--primary);
     overflow: hidden;

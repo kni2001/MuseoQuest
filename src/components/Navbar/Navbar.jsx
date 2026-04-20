@@ -55,6 +55,8 @@ const Navbar = () => {
     const [userPhoto, setUserPhoto] = React.useState(null);
     const [showPhotoModal, setShowPhotoModal] = React.useState(false);
     const [showCamera, setShowCamera] = React.useState(false);
+    const [showNoPhotoToast, setShowNoPhotoToast] = React.useState(false);
+    const noPhotoToastTimeoutRef = React.useRef(null);
     const profileRef = React.useRef(null);
     const editInputRef = React.useRef(null);
     const fileInputRef = React.useRef(null);
@@ -203,7 +205,17 @@ const Navbar = () => {
     };
 
     const handleViewPhoto = () => {
-        setShowPhotoModal(true);
+        if (userPhoto) {
+            setShowPhotoModal(true);
+        } else {
+            setShowNoPhotoToast(true);
+            if (noPhotoToastTimeoutRef.current) {
+                window.clearTimeout(noPhotoToastTimeoutRef.current);
+            }
+            noPhotoToastTimeoutRef.current = window.setTimeout(() => {
+                setShowNoPhotoToast(false);
+            }, 2000);
+        }
     };
 
     const handleRemovePhoto = () => {
@@ -263,6 +275,14 @@ const Navbar = () => {
         }
     }, []);
 
+    React.useEffect(() => {
+        return () => {
+            if (noPhotoToastTimeoutRef.current) {
+                window.clearTimeout(noPhotoToastTimeoutRef.current);
+            }
+        };
+    }, []);
+
     const goHome = () => {
         navigate('/home'); // remove #about or #contact
 
@@ -312,6 +332,13 @@ const Navbar = () => {
 
             <div className="nav-right">
                 <div className="profile-container" ref={profileRef} onClick={() => setIsProfileOpen(!isProfileOpen)}>
+                    <div className="profile-avatar-circle">
+                        {userPhoto ? (
+                            <img src={userPhoto} alt="User Icon" />
+                        ) : (
+                            <User size={18} className="profile-default-icon" />
+                        )}
+                    </div>
                     <div className="profile-info">
                         <span className="profile-name">{userName}</span>
                         <div className="profile-rank">
@@ -320,12 +347,6 @@ const Navbar = () => {
                                 <div className="mini-xp-fill" style={{ width: `${Math.min((userLevel / 5) * 100, 100)}%` }}></div>
                             </div>
                         </div>
-                    </div>
-                    <div className="profile-avatar-circle">
-                        <img
-                            src={getAvatarUrl(avatarGender)}
-                            alt="Profile"
-                        />
                     </div>
                     <AnimatePresence>
                         {isProfileOpen && (
@@ -341,61 +362,38 @@ const Navbar = () => {
                                     <div className="greeting-text">Hi {userName}</div>
                                 </div>
                                 <div className="dropdown-profile-section">
-                                    <div className="dropdown-profile-picture">
+                                    <div className="dropdown-profile-picture" onClick={handleViewPhoto}>
                                         {userPhoto ? (
                                             <img src={userPhoto} alt="Profile" />
                                         ) : (
-                                            <div className="default-avatar">
-                                                <User size={36} />
+                                            <div className="default-profile-icon">
+                                                <User size={24} />
                                             </div>
                                         )}
-                                        <div className="profile-picture-overlay">
-                                            <div className="photo-actions">
-                                                <button
-                                                    className="photo-action-btn"
-                                                    onClick={(e) => {
-                                                        e.stopPropagation();
-                                                        handleAddPhoto();
-                                                    }}
-                                                    title="Add Photo"
-                                                >
-                                                    <Upload size={16} />
-                                                    <span>Add Photo</span>
-                                                </button>
-                                                {userPhoto && (
-                                                    <button
-                                                        className="photo-action-btn"
-                                                        onClick={(e) => {
-                                                            e.stopPropagation();
-                                                            handleViewPhoto();
-                                                        }}
-                                                        title="View Photo"
-                                                    >
-                                                        <Eye size={16} />
-                                                        <span>View</span>
-                                                    </button>
-                                                )}
-                                                <button
-                                                    className="photo-action-btn"
-                                                    onClick={(e) => {
-                                                        e.stopPropagation();
-                                                        handleCameraStart();
-                                                    }}
-                                                    title="Take Photo"
-                                                >
-                                                    <Camera size={16} />
-                                                    <span>Take Photo</span>
-                                                </button>
-                                            </div>
-                                        </div>
                                     </div>
-                                    <input
-                                        ref={fileInputRef}
-                                        type="file"
-                                        accept="image/*"
-                                        onChange={handlePhotoUpload}
-                                        style={{ display: 'none' }}
-                                    />
+                                    <div className="profile-actions-menu">
+                                        <button
+                                            className="profile-action-btn"
+                                            onClick={handleAddPhoto}
+                                        >
+                                            <Upload size={16} />
+                                            <span>Add Photo</span>
+                                        </button>
+                                        <button
+                                            className="profile-action-btn"
+                                            onClick={handleCameraStart}
+                                        >
+                                            <Camera size={16} />
+                                            <span>Take Photo</span>
+                                        </button>
+                                        <button
+                                            className="profile-action-btn"
+                                            onClick={handleViewPhoto}
+                                        >
+                                            <Eye size={16} />
+                                            <span>View Photo</span>
+                                        </button>
+                                    </div>
                                 </div>
                                 <div className="profile-name-section">
                                     {isEditingName ? (
@@ -464,6 +462,20 @@ const Navbar = () => {
                 </button>
             </div>
 
+            <AnimatePresence>
+                {showNoPhotoToast && (
+                    <motion.div
+                        className="no-photo-toast"
+                        initial={{ opacity: 0, y: 20 }}
+                        animate={{ opacity: 1, y: 0 }}
+                        exit={{ opacity: 0, y: 20 }}
+                        transition={{ duration: 0.2 }}
+                    >
+                        No profile photo yet.
+                    </motion.div>
+                )}
+            </AnimatePresence>
+
             {/* Camera Modal */}
             <AnimatePresence>
                 {showCamera && (
@@ -518,10 +530,13 @@ const Navbar = () => {
 
             {/* Photo View Modal */}
             <AnimatePresence>
-                {showPhotoModal && userPhoto && (
+                {showPhotoModal && (
                     <motion.div
                         className="photo-modal-overlay"
-                        onClick={() => setShowPhotoModal(false)}
+                        onClick={() => {
+                            setShowPhotoModal(false);
+                            setShowNoPhotoToast(false);
+                        }}
                         initial={{ opacity: 0 }}
                         animate={{ opacity: 1 }}
                         exit={{ opacity: 0 }}
@@ -537,30 +552,39 @@ const Navbar = () => {
                                 <h3>Profile Photo</h3>
                                 <button
                                     className="photo-modal-close-btn"
-                                    onClick={() => setShowPhotoModal(false)}
+                                    onClick={() => {
+                                        setShowPhotoModal(false);
+                                        setShowNoPhotoToast(false);
+                                    }}
                                 >
                                     <X size={24} />
                                 </button>
                             </div>
-                            <img
-                                src={userPhoto}
-                                alt="Profile"
-                                className="photo-modal-image"
-                            />
-                            <div className="photo-modal-actions">
-                                <button
-                                    className="photo-modal-btn remove-btn"
-                                    onClick={handleRemovePhoto}
-                                >
-                                    Remove Photo
-                                </button>
-                                <button
-                                    className="photo-modal-btn close-btn"
-                                    onClick={() => setShowPhotoModal(false)}
-                                >
-                                    Close
-                                </button>
-                            </div>
+                            {userPhoto ? (
+                                <>
+                                    <img
+                                        src={userPhoto}
+                                        alt="Profile"
+                                        className="photo-modal-image"
+                                    />
+                                    <div className="photo-modal-actions">
+                                        <button
+                                            className="photo-modal-btn remove-btn"
+                                            onClick={handleRemovePhoto}
+                                        >
+                                            Remove Photo
+                                        </button>
+                                        <button
+                                            className="photo-modal-btn close-btn"
+                                            onClick={() => {
+                                                setShowPhotoModal(false);
+                                            }}
+                                        >
+                                            Close
+                                        </button>
+                                    </div>
+                                </>
+                            ) : null}
                         </motion.div>
                     </motion.div>
                 )}
@@ -587,6 +611,14 @@ const Navbar = () => {
                     </div>
                 </div>
             </div>
+            <input
+                ref={fileInputRef}
+                type="file"
+                accept="image/*"
+                style={{ display: 'none' }}
+                onChange={handlePhotoUpload}
+                onClick={(e) => { e.target.value = null; }}
+            />
         </nav>
     );
 };
