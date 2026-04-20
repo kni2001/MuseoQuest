@@ -23,7 +23,11 @@ import {
     Sun,
     Moon,
     Edit2,
-    Check
+    Check,
+    User,
+    Upload,
+    Eye,
+    Camera
 } from 'lucide-react';
 import { auth, db } from '../../lib/firebase';
 import { doc, getDoc, updateDoc } from 'firebase/firestore';
@@ -48,8 +52,14 @@ const Navbar = () => {
     );
     const [userLevel, setUserLevel] = React.useState(1);
     const [userScore, setUserScore] = React.useState(0);
+    const [userPhoto, setUserPhoto] = React.useState(null);
+    const [showPhotoModal, setShowPhotoModal] = React.useState(false);
+    const [showCamera, setShowCamera] = React.useState(false);
     const profileRef = React.useRef(null);
     const editInputRef = React.useRef(null);
+    const fileInputRef = React.useRef(null);
+    const videoRef = React.useRef(null);
+    const canvasRef = React.useRef(null);
 
     React.useEffect(() => {
         if (theme === 'light') {
@@ -138,6 +148,82 @@ const Navbar = () => {
         setAvatarGender(newGender);
     };
 
+    const handlePhotoUpload = (e) => {
+        const file = e.target.files[0];
+        if (file) {
+            const reader = new FileReader();
+            reader.onload = (event) => {
+                setUserPhoto(event.target.result);
+                localStorage.setItem('userProfilePhoto', event.target.result);
+                setShowPhotoModal(false);
+            };
+            reader.readAsDataURL(file);
+        }
+    };
+
+    const handleCameraStart = () => {
+        setShowCamera(true);
+        setTimeout(() => {
+            if (videoRef.current) {
+                navigator.mediaDevices
+                    .getUserMedia({ video: { facingMode: 'user' } })
+                    .then((stream) => {
+                        videoRef.current.srcObject = stream;
+                        videoRef.current.play();
+                    })
+                    .catch((error) => {
+                        console.error('Error accessing camera:', error);
+                        alert('Unable to access camera');
+                    });
+            }
+        }, 100);
+    };
+
+    const handleTakePhoto = () => {
+        if (videoRef.current && canvasRef.current) {
+            const context = canvasRef.current.getContext('2d');
+            canvasRef.current.width = videoRef.current.videoWidth;
+            canvasRef.current.height = videoRef.current.videoHeight;
+            context.drawImage(videoRef.current, 0, 0);
+
+            const photoData = canvasRef.current.toDataURL('image/jpeg');
+            setUserPhoto(photoData);
+            localStorage.setItem('userProfilePhoto', photoData);
+
+            // Stop camera stream
+            if (videoRef.current.srcObject) {
+                videoRef.current.srcObject.getTracks().forEach((track) => {
+                    track.stop();
+                });
+            }
+
+            setShowCamera(false);
+            setShowPhotoModal(false);
+        }
+    };
+
+    const handleViewPhoto = () => {
+        setShowPhotoModal(true);
+    };
+
+    const handleRemovePhoto = () => {
+        setUserPhoto(null);
+        localStorage.removeItem('userProfilePhoto');
+    };
+
+    const handleAddPhoto = () => {
+        fileInputRef.current?.click();
+    };
+
+    const handleCameraCancel = () => {
+        if (videoRef.current && videoRef.current.srcObject) {
+            videoRef.current.srcObject.getTracks().forEach((track) => {
+                track.stop();
+            });
+        }
+        setShowCamera(false);
+    };
+
     const handleSaveName = async () => {
         const user = auth.currentUser;
         if (!user || !editNameValue.trim()) return;
@@ -169,6 +255,13 @@ const Navbar = () => {
             editInputRef.current.select();
         }
     }, [isEditingName]);
+
+    React.useEffect(() => {
+        const savedPhoto = localStorage.getItem('userProfilePhoto');
+        if (savedPhoto) {
+            setUserPhoto(savedPhoto);
+        }
+    }, []);
 
     const goHome = () => {
         navigate('/home'); // remove #about or #contact
@@ -248,17 +341,61 @@ const Navbar = () => {
                                     <div className="greeting-text">Hi {userName}</div>
                                 </div>
                                 <div className="dropdown-profile-section">
-                                    <div
-                                        className="dropdown-profile-picture"
-                                        onClick={handleAvatarGenderChange}
-                                        title="Click to change avatar"
-                                    >
-                                        <img
-                                            src={getAvatarUrl(avatarGender)}
-                                            alt="Profile"
-                                        />
-                                        <div className="profile-picture-overlay">Change</div>
+                                    <div className="dropdown-profile-picture">
+                                        {userPhoto ? (
+                                            <img src={userPhoto} alt="Profile" />
+                                        ) : (
+                                            <div className="default-avatar">
+                                                <User size={36} />
+                                            </div>
+                                        )}
+                                        <div className="profile-picture-overlay">
+                                            <div className="photo-actions">
+                                                <button
+                                                    className="photo-action-btn"
+                                                    onClick={(e) => {
+                                                        e.stopPropagation();
+                                                        handleAddPhoto();
+                                                    }}
+                                                    title="Add Photo"
+                                                >
+                                                    <Upload size={16} />
+                                                    <span>Add Photo</span>
+                                                </button>
+                                                {userPhoto && (
+                                                    <button
+                                                        className="photo-action-btn"
+                                                        onClick={(e) => {
+                                                            e.stopPropagation();
+                                                            handleViewPhoto();
+                                                        }}
+                                                        title="View Photo"
+                                                    >
+                                                        <Eye size={16} />
+                                                        <span>View</span>
+                                                    </button>
+                                                )}
+                                                <button
+                                                    className="photo-action-btn"
+                                                    onClick={(e) => {
+                                                        e.stopPropagation();
+                                                        handleCameraStart();
+                                                    }}
+                                                    title="Take Photo"
+                                                >
+                                                    <Camera size={16} />
+                                                    <span>Take Photo</span>
+                                                </button>
+                                            </div>
+                                        </div>
                                     </div>
+                                    <input
+                                        ref={fileInputRef}
+                                        type="file"
+                                        accept="image/*"
+                                        onChange={handlePhotoUpload}
+                                        style={{ display: 'none' }}
+                                    />
                                 </div>
                                 <div className="profile-name-section">
                                     {isEditingName ? (
@@ -326,6 +463,108 @@ const Navbar = () => {
                     {isMenuOpen ? <X size={24} /> : <Menu size={24} />}
                 </button>
             </div>
+
+            {/* Camera Modal */}
+            <AnimatePresence>
+                {showCamera && (
+                    <motion.div
+                        className="camera-modal-overlay"
+                        onClick={handleCameraCancel}
+                        initial={{ opacity: 0 }}
+                        animate={{ opacity: 1 }}
+                        exit={{ opacity: 0 }}
+                    >
+                        <motion.div
+                            className="camera-modal"
+                            onClick={(e) => e.stopPropagation()}
+                            initial={{ scale: 0.9, opacity: 0 }}
+                            animate={{ scale: 1, opacity: 1 }}
+                            exit={{ scale: 0.9, opacity: 0 }}
+                        >
+                            <div className="camera-header">
+                                <h3>Take a Photo</h3>
+                                <button
+                                    className="camera-close-btn"
+                                    onClick={handleCameraCancel}
+                                >
+                                    <X size={24} />
+                                </button>
+                            </div>
+                            <video
+                                ref={videoRef}
+                                className="camera-video"
+                                playsInline
+                            ></video>
+                            <canvas ref={canvasRef} style={{ display: 'none' }}></canvas>
+                            <div className="camera-actions">
+                                <button
+                                    className="camera-btn cancel-btn"
+                                    onClick={handleCameraCancel}
+                                >
+                                    Cancel
+                                </button>
+                                <button
+                                    className="camera-btn capture-btn"
+                                    onClick={handleTakePhoto}
+                                >
+                                    <Camera size={20} />
+                                    Capture
+                                </button>
+                            </div>
+                        </motion.div>
+                    </motion.div>
+                )}
+            </AnimatePresence>
+
+            {/* Photo View Modal */}
+            <AnimatePresence>
+                {showPhotoModal && userPhoto && (
+                    <motion.div
+                        className="photo-modal-overlay"
+                        onClick={() => setShowPhotoModal(false)}
+                        initial={{ opacity: 0 }}
+                        animate={{ opacity: 1 }}
+                        exit={{ opacity: 0 }}
+                    >
+                        <motion.div
+                            className="photo-modal"
+                            onClick={(e) => e.stopPropagation()}
+                            initial={{ scale: 0.9, opacity: 0 }}
+                            animate={{ scale: 1, opacity: 1 }}
+                            exit={{ scale: 0.9, opacity: 0 }}
+                        >
+                            <div className="photo-modal-header">
+                                <h3>Profile Photo</h3>
+                                <button
+                                    className="photo-modal-close-btn"
+                                    onClick={() => setShowPhotoModal(false)}
+                                >
+                                    <X size={24} />
+                                </button>
+                            </div>
+                            <img
+                                src={userPhoto}
+                                alt="Profile"
+                                className="photo-modal-image"
+                            />
+                            <div className="photo-modal-actions">
+                                <button
+                                    className="photo-modal-btn remove-btn"
+                                    onClick={handleRemovePhoto}
+                                >
+                                    Remove Photo
+                                </button>
+                                <button
+                                    className="photo-modal-btn close-btn"
+                                    onClick={() => setShowPhotoModal(false)}
+                                >
+                                    Close
+                                </button>
+                            </div>
+                        </motion.div>
+                    </motion.div>
+                )}
+            </AnimatePresence>
 
             {/* Mobile Menu Overlay */}
             <div className={`mobile-menu ${isMenuOpen ? 'open' : ''}`}>
