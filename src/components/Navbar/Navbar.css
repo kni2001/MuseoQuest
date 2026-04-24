@@ -908,14 +908,13 @@
     }
 
     .home-navbar .profile-avatar-circle {
-        width: 34px;
+        width: 50px;
         height: 34px;
     }
 
     .home-navbar .profile-dropdown-card {
         top: calc(100% + 8px);
-        right: 0.5rem;
-        left: 0.5rem;
+        width: 200px;
         border-radius: 14px;
         padding: 0;
     }
@@ -932,6 +931,7 @@
     .mobile-nav-link {
         padding: 0.95rem 1rem;
     }
+
 
     .no-photo-toast {
         left: 50%;
