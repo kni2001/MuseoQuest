@@ -70,8 +70,7 @@ const AdminDashboard = () => {
     }, []);
 
     React.useEffect(() => {
-        const fetchAdminInfo = async () => {
-            const user = auth.currentUser;
+        const unsubscribe = auth.onAuthStateChanged(async (user) => {
             if (user) {
                 const userDocRef = doc(db, 'users', user.uid);
                 const userDocSnap = await getDoc(userDocRef);
@@ -83,8 +82,8 @@ const AdminDashboard = () => {
                     }
                 }
             }
-        };
-        fetchAdminInfo();
+        });
+        return unsubscribe;
     }, []);
 
     React.useEffect(() => {
@@ -175,98 +174,207 @@ const AdminDashboard = () => {
     };
 
     const handleProfileImageUpload = async (e) => {
-        const file = e.target.files?.[0];
-        if (!file) return;
+        console.log('handleProfileImageUpload triggered', e);
+        const file = e.target?.files?.[0];
+        console.log('File selected:', file?.name, 'Size:', file?.size, 'Type:', file?.type);
+        
+        if (!file) {
+            console.warn('No file selected');
+            return;
+        }
 
         if (!file.type.startsWith('image/')) {
+            console.warn('Invalid file type:', file.type);
             alert('Please select a valid image file');
             return;
         }
 
         try {
             const user = auth.currentUser;
-            if (!user) return;
+            console.log('Current user:', user?.uid, 'Email:', user?.email);
+            
+            if (!user) {
+                alert('No user logged in. Please log in and try again.');
+                return;
+            }
 
-            // Upload image to Firebase Storage
-            const storageRef = ref(storage, `admins/${user.uid}/profile-picture`);
-            await uploadBytes(storageRef, file);
-            const downloadURL = await getDownloadURL(storageRef);
+            // Try to read as data URL first (for preview)
+            const reader = new FileReader();
+            reader.onload = async (readerEvent) => {
+                try {
+                    const dataUrl = readerEvent.target?.result;
+                    console.log('File read as data URL');
+                    
+                    // Set preview immediately
+                    setAdminProfileImage(dataUrl);
+                    
+                    // Then try to upload to Firebase
+                    console.log('Uploading to Firebase Storage...');
+                    const storageRef = ref(storage, `admins/${user.uid}/profile-picture`);
+                    console.log('Storage path:', `admins/${user.uid}/profile-picture`);
+                    
+                    const uploadResult = await uploadBytes(storageRef, file);
+                    console.log('Upload to Firebase successful:', uploadResult.ref.fullPath);
+                    
+                    const downloadURL = await getDownloadURL(storageRef);
+                    console.log('Download URL obtained:', downloadURL);
 
-            // Save image URL to Firestore
-            const userDocRef = doc(db, 'users', user.uid);
-            await updateDoc(userDocRef, {
-                profileImage: downloadURL
-            });
-
-            setAdminProfileImage(downloadURL);
-            console.log('Profile image uploaded successfully');
+                    // Save to Firestore
+                    const userDocRef = doc(db, 'users', user.uid);
+                    await updateDoc(userDocRef, { profileImage: downloadURL });
+                    console.log('Firestore updated successfully');
+                    
+                    alert('✅ Profile photo uploaded successfully!');
+                } catch (firebaseError) {
+                    console.error('Firebase upload error:', firebaseError);
+                    console.error('Error code:', firebaseError.code);
+                    console.error('Error message:', firebaseError.message);
+                    // Photo is already shown in preview, but alert about firebase
+                    alert(`⚠️ Photo saved locally but Firebase upload failed: ${firebaseError.message}`);
+                }
+                
+                // Reset file input
+                if (fileInputRef.current) {
+                    fileInputRef.current.value = '';
+                }
+            };
+            
+            reader.onerror = (error) => {
+                console.error('FileReader error:', error);
+                alert('Failed to read file');
+            };
+            
+            console.log('Starting FileReader...');
+            reader.readAsDataURL(file);
+            
         } catch (error) {
-            console.error('Failed to upload profile image:', error);
-            alert('Failed to upload profile image. Please try again.');
+            console.error('Outer try-catch error:', error);
+            alert(`❌ Error: ${error.message || 'Unknown error'}`);
         }
     };
 
     const handleCameraStart = () => {
+        console.log('handleCameraStart called');
         setShowCamera(true);
         setIsProfileOpen(false);
         setTimeout(() => {
+            console.log('Requesting camera access...');
             if (videoRef.current) {
                 navigator.mediaDevices
                     .getUserMedia({ video: { facingMode: 'user' } })
                     .then((stream) => {
+                        console.log('Camera stream obtained:', stream);
                         videoRef.current.srcObject = stream;
-                        videoRef.current.play();
+                        console.log('Stream attached to video element');
+                        videoRef.current.play().catch((err) => {
+                            console.error('Error playing video stream:', err);
+                        });
                     })
                     .catch((error) => {
                         console.error('Error accessing camera:', error);
-                        alert('Unable to access camera');
+                        console.error('Error name:', error.name);
+                        console.error('Error message:', error.message);
+                        alert(`❌ Unable to access camera: ${error.message || error.name}. Please check permissions.`);
+                        setShowCamera(false);
                     });
             }
         }, 100);
     };
 
     const handleTakePhoto = async () => {
-        if (videoRef.current && canvasRef.current) {
+        console.log('handleTakePhoto called');
+        console.log('videoRef.current:', videoRef.current);
+        console.log('canvasRef.current:', canvasRef.current);
+        
+        if (!videoRef.current || !canvasRef.current) {
+            console.error('Refs not available', { videoRef: videoRef.current, canvasRef: canvasRef.current });
+            alert('❌ Camera not ready. Please try again.');
+            return;
+        }
+
+        try {
+            console.log('Video dimensions:', { width: videoRef.current.videoWidth, height: videoRef.current.videoHeight });
+            
+            if (videoRef.current.videoWidth === 0 || videoRef.current.videoHeight === 0) {
+                console.error('Video stream has invalid dimensions');
+                alert('❌ Camera stream is not ready. Please wait a moment and try again.');
+                return;
+            }
+            
             const context = canvasRef.current.getContext('2d');
+            if (!context) {
+                console.error('Could not get canvas 2D context');
+                alert('❌ Failed to capture image. Please try again.');
+                return;
+            }
+            
             canvasRef.current.width = videoRef.current.videoWidth;
             canvasRef.current.height = videoRef.current.videoHeight;
+            console.log('Canvas resized to:', { width: canvasRef.current.width, height: canvasRef.current.height });
+            
             context.drawImage(videoRef.current, 0, 0);
+            console.log('Image drawn to canvas');
 
             const photoData = canvasRef.current.toDataURL('image/jpeg');
+            console.log('Photo data captured, length:', photoData.length);
 
-            try {
-                const user = auth.currentUser;
-                if (!user) return;
-
-                // Convert base64 to blob
-                const response = await fetch(photoData);
-                const blob = await response.blob();
-
-                // Upload image to Firebase Storage
-                const storageRef = ref(storage, `admins/${user.uid}/profile-picture-camera`);
-                await uploadBytes(storageRef, blob);
-                const downloadURL = await getDownloadURL(storageRef);
-
-                // Save image URL to Firestore
-                const userDocRef = doc(db, 'users', user.uid);
-                await updateDoc(userDocRef, {
-                    profileImage: downloadURL
-                });
-
-                setAdminProfileImage(downloadURL);
-
-                // Stop camera stream
-                if (videoRef.current.srcObject) {
-                    videoRef.current.srcObject.getTracks().forEach((track) => {
-                        track.stop();
-                    });
-                }
-
-                setShowCamera(false);
-            } catch (error) {
-                console.error('Failed to upload camera photo:', error);
-                alert('Failed to upload photo. Please try again.');
+            if (!photoData || photoData.length < 100) {
+                console.error('Photo data appears invalid');
+                alert('❌ Failed to capture image properly. Please try again.');
+                return;
             }
+
+            // Set preview immediately
+            setAdminProfileImage(photoData);
+            console.log('Preview set');
+
+            // Stop camera stream immediately so UI updates
+            if (videoRef.current?.srcObject) {
+                videoRef.current.srcObject.getTracks().forEach((track) => {
+                    console.log('Stopping track:', track.kind);
+                    track.stop();
+                });
+            }
+            setShowCamera(false);
+            
+            const user = auth.currentUser;
+            console.log('Current user:', user?.uid);
+            if (!user) {
+                alert('⚠️ Photo captured but not logged in. Photo saved locally.');
+                return;
+            }
+
+            // Perform upload in background
+            (async () => {
+                try {
+                    console.log('Converting photo to blob...');
+                    const response = await fetch(photoData);
+                    const blob = await response.blob();
+                    console.log('Blob created, size:', blob.size);
+
+                    console.log('Uploading to Firebase Storage...');
+                    const storageRef = ref(storage, `admins/${user.uid}/profile-picture-camera`);
+                    const uploadResult = await uploadBytes(storageRef, blob);
+                    console.log('Upload successful:', uploadResult.ref.fullPath);
+                    
+                    const downloadURL = await getDownloadURL(storageRef);
+                    console.log('Download URL:', downloadURL);
+
+                    console.log('Updating Firestore...');
+                    const userDocRef = doc(db, 'users', user.uid);
+                    await updateDoc(userDocRef, { profileImage: downloadURL });
+                    console.log('Firestore updated');
+                } catch (err) {
+                    console.error('Background upload failed:', err);
+                    alert('Failed to upload photo to server, but it is saved locally for this session.');
+                }
+            })();
+        } catch (error) {
+            console.error('Photo capture error:', error);
+            console.error('Error code:', error?.code);
+            console.error('Error message:', error?.message);
+            console.error('Full error:', error);
+            alert(`❌ Failed to upload photo: ${error?.message || 'Unknown error'}`);
         }
     };
 
@@ -334,7 +442,11 @@ const AdminDashboard = () => {
                             onClick={() => setIsProfileOpen(!isProfileOpen)}
                         >
                             <span className="admin-name">{adminName}</span>
-                            <img src="/src/images/usericon.webp" alt="Admin Icon" className="admin-user-icon" />
+                            {adminProfileImage ? (
+                                <img src={adminProfileImage} alt="Admin Icon" className="admin-user-icon" />
+                            ) : (
+                                <img src="/src/images/usericon.webp" alt="Admin Icon" className="admin-user-icon" />
+                            )}
                         </div>
                         {isProfileOpen && (
                             <motion.div
@@ -731,6 +843,7 @@ const AdminDashboard = () => {
                             <video
                                 ref={videoRef}
                                 className="camera-video"
+                                autoPlay
                                 playsInline
                             ></video>
                             <canvas ref={canvasRef} style={{ display: 'none' }}></canvas>
@@ -829,7 +942,10 @@ const AdminDashboard = () => {
                 accept="image/*"
                 style={{ display: 'none' }}
                 onChange={handleProfileImageUpload}
-                onClick={(e) => { e.target.value = null; }}
+                onClick={(e) => {
+                    console.log('File input clicked');
+                    e.target.value = null; // Reset for re-selection of same file
+                }}
             />
 
             <Footer />

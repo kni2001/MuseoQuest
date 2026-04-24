@@ -85,19 +85,29 @@ const Navbar = () => {
         const unsubscribe = auth.onAuthStateChanged(async (user) => {
             if (user) {
                 let name = user.displayName;
-                if (!name) {
-                    try {
-                        const docRef = doc(db, 'users', user.uid);
-                        const docSnap = await getDoc(docRef);
-                        if (docSnap.exists()) {
-                            name = docSnap.data().fullName || '';
+                let profileImg = null;
+                try {
+                    const docRef = doc(db, 'users', user.uid);
+                    const docSnap = await getDoc(docRef);
+                    if (docSnap.exists()) {
+                        const data = docSnap.data();
+                        name = name || data.fullName || '';
+                        
+                        if (data.profileImage) {
+                            profileImg = data.profileImage;
                         }
-                    } catch (e) {
-                        console.error('Failed to fetch user profile:', e);
                     }
+                } catch (e) {
+                    console.error('Failed to fetch user profile:', e);
                 }
+                
                 setUserName(name || user.email || 'Visitor');
                 setEditNameValue(name || user.email || 'Visitor');
+                
+                if (profileImg) {
+                    setUserPhoto(profileImg);
+                    localStorage.setItem('userProfilePhoto', profileImg);
+                }
 
                 // Fetch user game progress
                 try {
