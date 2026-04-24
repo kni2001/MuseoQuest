@@ -435,6 +435,7 @@
 /* Main Exhibit Navigation Section */
 .main-exhibit-navigation {
     margin-top: 5rem;
+    scroll-margin-top: 100px;
     display: grid;
     grid-template-columns: 1fr 2fr;
     gap: 0;

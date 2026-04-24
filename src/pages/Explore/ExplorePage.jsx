@@ -31,7 +31,6 @@ const ExplorePage = () => {
 
   const exhibitRef = React.useRef(null);
   const audioRef = React.useRef(null);
-  const hasNavigatedOnce = React.useRef(false);
   const hasVisitedExploreInitially = React.useRef(false);
 
   useEffect(() => {
@@ -39,15 +38,15 @@ const ExplorePage = () => {
   }, []);
 
   useEffect(() => {
-    // Scroll to the exhibit section when the exhibit ID changes (after the initial load)
-    if (hasNavigatedOnce.current) {
-      if (id) {
+    if (id) {
+      const timer = window.setTimeout(() => {
         exhibitRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' });
-      } else {
-        window.scrollTo({ top: 0, left: 0, behavior: 'smooth' });
-      }
+      }, 50);
+
+      return () => window.clearTimeout(timer);
     }
-    hasNavigatedOnce.current = true;
+
+    window.scrollTo({ top: 0, left: 0, behavior: 'smooth' });
   }, [id]);
 
   useEffect(() => {
